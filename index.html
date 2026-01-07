@@ -1,22 +1,17 @@
 <!doctype html>
 <html lang="ru" class="h-full">
-<head>
+ <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Comic Reader 2</title>
-
+  <title>PDF Comic Reader</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
-  <script src="/_sdk/data_sdk.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
-    html, body {
-      height: 100%;
-      overflow: hidden; /* ❗ убираем скролл */
+    body {
+      box-sizing: border-box;
     }
-
-    *, *::before, *::after {
+    
+    * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -57,94 +52,424 @@
       transform: scale(0.95);
     }
   </style>
-</head>
-
-<body class="h-full">
-<div id="app-wrapper" class="w-full h-full">
-
-  <!-- Loading -->
-  <div id="loading-screen" class="w-full h-full flex flex-col items-center justify-center">
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper" class="w-full h-full"><!-- Loading Screen -->
+   <div id="loading-screen" class="w-full h-full flex flex-col items-center justify-center">
     <div class="spinner mb-4"></div>
     <p id="loading-text" class="text-lg">Загрузка комикса...</p>
-  </div>
-
-  <!-- Reader -->
-  <div id="reader-screen" class="w-full h-full hidden flex-col relative">
-
+   </div><!-- Reader Screen -->
+   <div id="reader-screen" class="w-full h-full hidden flex-col">
     <div id="progress-bar" class="progress-bar"></div>
-
     <div id="header" class="flex items-center justify-between px-6 py-4 shadow-md">
-      <h2 id="comic-title" class="text-xl font-bold truncate flex-1">Comic Reader</h2>
+     <h2 id="comic-title" class="text-xl font-bold truncate flex-1">Comic Reader</h2>
     </div>
-
-    <div id="canvas-wrapper" class="flex-1 relative overflow-hidden">
-      <div id="canvas-container" class="w-full h-full flex items-center justify-center p-4 relative">
-        <canvas id="pdf-canvas-1" class="max-w-full max-h-full absolute"></canvas>
-        <canvas id="pdf-canvas-2" class="max-w-full max-h-full absolute opacity-0"></canvas>
-      </div>
+    <div class="flex-1 overflow-auto relative" id="canvas-wrapper" style="overflow: hidden;">
+     <div id="canvas-container" class="w-full h-full flex items-center justify-center p-4" style="position: relative;">
+      <canvas id="pdf-canvas-1" class="max-w-full max-h-full shadow-2xl" style="position: absolute;"></canvas>
+      <canvas id="pdf-canvas-2" class="max-w-full max-h-full shadow-2xl" style="position: absolute; opacity: 0;"></canvas>
+     </div>
     </div>
-
-    <!-- CONTROLS (FIXED) -->
-    <div id="controls-wrapper"
-         class="fixed bottom-0 left-0 w-full z-50"
-         style="transition: transform 0.3s ease, opacity 0.3s ease;">
-      <div id="controls" class="flex items-center justify-center gap-2 px-8 py-4 shadow-lg">
-
-        <button id="prev-btn" style="width:48px;height:48px;border-radius:50%">
-          ◀
-        </button>
-
-        <div id="page-indicator" class="px-4 py-2 rounded-lg">
-          <span id="current-page">1</span> /
-          <span id="total-pages">1</span>
-        </div>
-
-        <button id="next-btn" style="width:48px;height:48px;border-radius:50%">
-          ▶
-        </button>
-
-        <button id="fullscreen-btn" class="ml-4">⛶</button>
-
-        <button id="hide-controls-btn" class="ml-4">⬇</button>
-      </div>
-    </div>
-
-    <!-- SHOW BUTTON -->
-    <button id="show-controls-btn"
-            class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 px-6 py-2 rounded-t-lg shadow-lg z-50">
-      ⬆
-    </button>
-
+    <div id="controls-wrapper" style="transition: transform 0.3s ease;">
+     <div id="controls" class="flex items-center justify-center gap-2 px-8 py-4 shadow-lg"><button id="prev-btn" class="transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed" style="min-width: 48px; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0;">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+       </svg></button>
+      <div id="page-indicator" class="text-lg font-medium px-4 py-2 rounded-lg whitespace-nowrap"><span id="current-page">1</span> / <span id="total-pages">1</span>
+      </div><button id="next-btn" class="transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed" style="min-width: 48px; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0;">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+       </svg></button> <button id="fullscreen-btn" class="ml-4 transition-all duration-200" style="min-width: 40px; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+       </svg></button> <button id="hide-controls-btn" class="ml-4 transition-all duration-200" style="min-width: 40px; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+       </svg></button>
+     </div>
+    </div><button id="show-controls-btn" class="hidden absolute bottom-0 left-1/2 transform -translate-x-1/2 px-6 py-2 rounded-t-lg transition-all duration-200 shadow-lg" style="min-width: 80px;">
+     <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+     </svg></button>
+   </div>
   </div>
-</div>
+  <script>
+    // ССЫЛКА НА ВАШ PDF С GITHUB PAGES:
+    const PDF_URL = 'https://bridgedannette-commits.github.io/my-comic/поинт-павер-комекс.pdf';
 
-<script>
-/* =================== FIX: hide / show controls =================== */
+    const defaultConfig = {
+      background_color: '#0f0f23',
+      surface_color: '#1a1a2e',
+      text_color: '#e4e4e7',
+      primary_action_color: '#a855f7',
+      secondary_action_color: '#ec4899',
+      font_family: 'Space Grotesk',
+      font_size: 16,
+      comic_title: 'My Comic'
+    };
 
-const hideBtn = document.getElementById('hide-controls-btn');
-const showBtn = document.getElementById('show-controls-btn');
-const controlsWrapper = document.getElementById('controls-wrapper');
+    let pdfDoc = null;
+    let currentPage = 1;
+    let isRendering = false;
+    let activeCanvasIndex = 1;
 
-hideBtn.addEventListener('click', () => {
-  controlsWrapper.style.transform = 'translateY(100%)';
-  controlsWrapper.style.opacity = '0';
-  controlsWrapper.style.pointerEvents = 'none';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  setTimeout(() => showBtn.classList.remove('hidden'), 300);
-});
+    async function onConfigChange(config) {
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const baseFontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-showBtn.addEventListener('click', () => {
-  showBtn.classList.add('hidden');
-  controlsWrapper.style.transform = 'translateY(0)';
-  controlsWrapper.style.opacity = '1';
-  controlsWrapper.style.pointerEvents = 'auto';
-});
+      document.body.style.background = backgroundColor;
+      document.body.style.color = textColor;
+      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
 
-/* ================================================================ */
-/* Ниже — твой код без изменений (PDF.js, fullscreen, swipe и т.д.) */
-/* ================================================================ */
+      const appWrapper = document.getElementById('app-wrapper');
+      appWrapper.style.background = backgroundColor;
 
-</script>
+      const loadingScreen = document.getElementById('loading-screen');
+      loadingScreen.style.color = textColor;
 
-</body>
+      const loadingText = document.getElementById('loading-text');
+      loadingText.style.fontSize = `${baseSize * 1.125}px`;
+      loadingText.style.fontFamily = `${customFont}, ${baseFontStack}`;
+
+      const header = document.getElementById('header');
+      header.style.background = surfaceColor;
+      header.style.color = textColor;
+
+      const comicTitle = document.getElementById('comic-title');
+      comicTitle.textContent = config.comic_title || defaultConfig.comic_title;
+      comicTitle.style.fontSize = `${baseSize * 1.25}px`;
+      comicTitle.style.fontFamily = `${customFont}, ${baseFontStack}`;
+
+      const canvasWrapper = document.getElementById('canvas-wrapper');
+      canvasWrapper.style.background = backgroundColor;
+
+      const controls = document.getElementById('controls');
+      controls.style.background = surfaceColor;
+
+      const prevBtn = document.getElementById('prev-btn');
+      prevBtn.style.background = primaryColor;
+      prevBtn.style.color = textColor;
+
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.style.background = primaryColor;
+      nextBtn.style.color = textColor;
+
+      const pageIndicator = document.getElementById('page-indicator');
+      pageIndicator.style.background = surfaceColor;
+      pageIndicator.style.color = textColor;
+      pageIndicator.style.fontSize = `${baseSize * 1.125}px`;
+      pageIndicator.style.fontFamily = `${customFont}, ${baseFontStack}`;
+
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      fullscreenBtn.style.background = 'transparent';
+      fullscreenBtn.style.color = textColor;
+
+      const hideControlsBtn = document.getElementById('hide-controls-btn');
+      hideControlsBtn.style.background = 'transparent';
+      hideControlsBtn.style.color = textColor;
+
+      const showControlsBtn = document.getElementById('show-controls-btn');
+      showControlsBtn.style.background = surfaceColor;
+      showControlsBtn.style.color = textColor;
+
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.background = secondaryColor;
+    }
+
+    async function renderPage(pageNum, direction = 'none') {
+      if (isRendering || !pdfDoc) return;
+      isRendering = true;
+
+      const currentCanvas = document.getElementById(`pdf-canvas-${activeCanvasIndex}`);
+      const nextCanvasIndex = activeCanvasIndex === 1 ? 2 : 1;
+      const nextCanvas = document.getElementById(`pdf-canvas-${nextCanvasIndex}`);
+      const container = document.getElementById('canvas-container');
+      
+      const page = await pdfDoc.getPage(pageNum);
+      const ctx = nextCanvas.getContext('2d');
+      
+      const maxWidth = container.clientWidth - 32;
+      const maxHeight = container.clientHeight - 32;
+      
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(maxWidth / viewport.width, maxHeight / viewport.height);
+      const scaledViewport = page.getViewport({ scale });
+
+      nextCanvas.width = scaledViewport.width;
+      nextCanvas.height = scaledViewport.height;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: scaledViewport
+      }).promise;
+
+      if (direction !== 'none') {
+        if (direction === 'next') {
+          nextCanvas.style.transform = 'translateX(100%)';
+          nextCanvas.style.opacity = '1';
+        } else if (direction === 'prev') {
+          nextCanvas.style.transform = 'translateX(-100%)';
+          nextCanvas.style.opacity = '1';
+        }
+
+        void nextCanvas.offsetWidth;
+
+        currentCanvas.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+        nextCanvas.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+
+        if (direction === 'next') {
+          currentCanvas.style.transform = 'translateX(-100%)';
+          currentCanvas.style.opacity = '0';
+          nextCanvas.style.transform = 'translateX(0)';
+        } else if (direction === 'prev') {
+          currentCanvas.style.transform = 'translateX(100%)';
+          currentCanvas.style.opacity = '0';
+          nextCanvas.style.transform = 'translateX(0)';
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        currentCanvas.style.transition = 'none';
+        currentCanvas.style.transform = 'translateX(0)';
+        currentCanvas.style.opacity = '0';
+
+        nextCanvas.style.transition = 'none';
+      } else {
+        nextCanvas.style.opacity = '1';
+        nextCanvas.style.transform = 'translateX(0)';
+        currentCanvas.style.opacity = '0';
+      }
+
+      activeCanvasIndex = nextCanvasIndex;
+
+      document.getElementById('current-page').textContent = pageNum;
+      document.getElementById('prev-btn').disabled = pageNum === 1;
+      document.getElementById('next-btn').disabled = pageNum === pdfDoc.numPages;
+
+      const progressPercent = (pageNum / pdfDoc.numPages) * 100;
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = `${progressPercent}%`;
+
+      isRendering = false;
+    }
+
+    function convertOneDriveLink(url) {
+      // Убираем параметры после ?
+      let cleanUrl = url.split('?')[0];
+      
+      // Заменяем /b/c/ на /download и добавляем параметр download
+      if (cleanUrl.includes('1drv.ms')) {
+        cleanUrl = cleanUrl.replace('1drv.ms/b/', '1drv.ms/download/');
+      }
+      
+      return cleanUrl + '?download=1';
+    }
+
+    async function loadPDF() {
+      try {
+        let url = PDF_URL;
+        
+        // Конвертируем OneDrive ссылку в прямую ссылку для скачивания
+        if (url.includes('1drv.ms') || url.includes('onedrive.live.com')) {
+          url = convertOneDriveLink(url);
+        }
+        
+        const response = await fetch(url, { 
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        document.getElementById('total-pages').textContent = pdfDoc.numPages;
+        
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('reader-screen').classList.remove('hidden');
+        document.getElementById('reader-screen').classList.add('flex', 'fade-in');
+
+        currentPage = 1;
+        await renderPage(currentPage);
+        
+      } catch (error) {
+        console.error('Error loading PDF:', error);
+        document.getElementById('loading-text').innerHTML = '❌ Не удалось загрузить PDF.<br>Попробуйте:<br>1. Проверить, что файл доступен всем<br>2. Использовать прямую ссылку для скачивания';
+      }
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', async () => {
+      if (currentPage > 1) {
+        currentPage--;
+        await renderPage(currentPage, 'prev');
+      }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', async () => {
+      if (currentPage < pdfDoc.numPages) {
+        currentPage++;
+        await renderPage(currentPage, 'next');
+      }
+    });
+
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    
+    function updateFullscreenIcon() {
+      const isFullscreen = !!document.fullscreenElement;
+      fullscreenBtn.innerHTML = isFullscreen 
+        ? '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"></path></svg>'
+        : '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>';
+    }
+    
+    fullscreenBtn.addEventListener('click', () => {
+      const readerScreen = document.getElementById('reader-screen');
+      if (!document.fullscreenElement) {
+        readerScreen.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
+    
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+
+    document.getElementById('hide-controls-btn').addEventListener('click', () => {
+      const controlsWrapper = document.getElementById('controls-wrapper');
+      const showControlsBtn = document.getElementById('show-controls-btn');
+      
+      controlsWrapper.style.transform = 'translateY(100%)';
+      setTimeout(() => showControlsBtn.classList.remove('hidden'), 300);
+    });
+
+    document.getElementById('show-controls-btn').addEventListener('click', () => {
+      const controlsWrapper = document.getElementById('controls-wrapper');
+      const showControlsBtn = document.getElementById('show-controls-btn');
+      
+      showControlsBtn.classList.add('hidden');
+      controlsWrapper.style.transform = 'translateY(0)';
+    });
+
+    document.addEventListener('keydown', async (e) => {
+      if (!pdfDoc) return;
+      
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        currentPage--;
+        await renderPage(currentPage, 'prev');
+      } else if (e.key === 'ArrowRight' && currentPage < pdfDoc.numPages) {
+        currentPage++;
+        await renderPage(currentPage, 'next');
+      }
+    });
+
+    window.addEventListener('resize', async () => {
+      if (pdfDoc && !isRendering) {
+        await renderPage(currentPage);
+      }
+    });
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const minSwipeDistance = 50;
+
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+
+    canvasWrapper.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    canvasWrapper.addEventListener('touchend', async (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchEndX - touchStartX;
+      
+      if (Math.abs(swipeDistance) < minSwipeDistance) return;
+      
+      if (swipeDistance > 0 && currentPage > 1) {
+        currentPage--;
+        await renderPage(currentPage, 'prev');
+      } else if (swipeDistance < 0 && currentPage < pdfDoc.numPages) {
+        currentPage++;
+        await renderPage(currentPage, 'next');
+      }
+    }, { passive: true });
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['comic_title', config.comic_title || defaultConfig.comic_title]
+        ])
+      });
+    }
+
+    onConfigChange(defaultConfig);
+    loadPDF();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ba07478807dafa0',t:'MTc2Nzc1NzQ0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
